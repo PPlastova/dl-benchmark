@@ -69,7 +69,7 @@ echo "WORKDIR = ${WORKDIR}"
 
 if [[ -z "${BUILD_DIR}" ]] 
 then
-    BUILD_DIR="${REPO_ROOT}/build_tflite_riscv"
+    BUILD_DIR="${REPO_ROOT}/build_tflite_riscv_rvv07"
     if [[ ! -d ${BUILD_DIR} ]]
     then
         mkdir ${BUILD_DIR}
@@ -124,9 +124,9 @@ if [[ -z "${TOOLCHAIN_PATH}" ]]
 then
     if [ ! -d ${WORKDIR}/riscv ]
     then
-        echo "Starting downloading xuantie-gnu-toolchain for ubuntu 20.04 version 2.8.1 ..."
-        wget -O ${WORKDIR}/riscv_toolchain.tgz 'https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1705395627867/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1-20240115.tar.gz'
-        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz 
+        echo "Starting downloading riscv-gnu-toolchain for ubuntu 20.04 version 2024.03.01..."
+        wget -O ${WORKDIR}/riscv_toolchain.tgz 'https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01/riscv64-glibc-ubuntu-20.04-gcc-nightly-2024.03.01-nightly.tar.gz' 
+        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz -C ${WORKDIR}
         mv ${WORKDIR}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1 ${WORKDIR}/riscv
     fi
     TOOLCHAIN_PATH=${WORKDIR}/riscv
@@ -160,19 +160,23 @@ fi
 if [[ ! -z "${REBUILD_CPP_LAUNCHER}" ]]
 then
     cmake -S ${REPO_ROOT}/src/cpp_dl_benchmark \
-        -B ${BUILD_DIR}/cpp_tflite_launcher_riscv_build -D CMAKE_BUILD_TYPE=Release -D ENABLE_CLANG_FORMAT=OFF \
-        -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 -D BUILD_SHARED_LIBS=OFF -D CMAKE_SYSROOT=${RISCV_SYSROOT} \
-        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
-        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
-        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d" -D CMAKE_C_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d" \
-        -D BUILD_TFLITE_LAUNCHER=ON -D BUILD_TFLITE_XNNPACK_LAUNCHER=ON -D nlohmann_json_DIR=${JSON_BUILD} \
+        -B ${BUILD_DIR}/cpp_tflite_launcher_riscv_build \
+        -D CMAKE_BUILD_TYPE=Release -D ENABLE_CLANG_FORMAT=OFF \
+        -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 \
+        -D BUILD_SHARED_LIBS=OFF -D CMAKE_SYSROOT=${RISCV_SYSROOT} \
+        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+        -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128" \
+        -D CMAKE_C_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128" \
+        -D BUILD_TFLITE_LAUNCHER=ON -D BUILD_TFLITE_XNNPACK_LAUNCHER=ON \
+        -D BUILD_TFLITE_GPU_LAUNCHER=OFF \
+        -D nlohmann_json_DIR=${JSON_BUILD} \
         -D CMAKE_FIND_ROOT_PATH=${TFLITE_RISCV_BUILD} \
-        -D TENSORFLOW_SRC_DIR=${TFLITE_SRC_DIR} -D TFLITE_BUILD_DIR=${TFLITE_RISCV_BUILD} -D OpenCV_DIR=${OPENCV_RISCV_BUILD}
+        -D TENSORFLOW_SRC_DIR=${TFLITE_SRC_DIR} \
+        -D TFLITE_BUILD_DIR=${TFLITE_RISCV_BUILD} \
+        -D OpenCV_DIR=${OPENCV_RISCV_BUILD}
     cmake --build ${BUILD_DIR}/cpp_tflite_launcher_riscv_build --config Release -- -j$(nproc)
 fi
-
-rm -rf ${BUILD_DIR}/riscv64_send_archive/*
-cp -r ${BUILD_DIR}/cpp_tflite_launcher_riscv_build ${BUILD_DIR}/riscv64_send_archive
-cp -r ${TFLITE_RISCV_BUILD} ${BUILD_DIR}/riscv64_send_archive
-cp -r ${OPENCV_RISCV_BUILD} ${BUILD_DIR}/riscv64_send_archive
-tar -cvzf ${BUILD_DIR}/riscv64_send_archive.tgz -C ${BUILD_DIR}/riscv64_send_archive .

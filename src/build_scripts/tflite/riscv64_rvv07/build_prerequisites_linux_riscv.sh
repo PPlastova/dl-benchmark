@@ -27,6 +27,11 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    --recompile_tflite)
+      RECOMPILE_TFLITE=YES
+      shift # past argument
+      shift # past value
+      ;;
     --rebuild_opencv)
       REBUILD_OPENCV=YES
       shift # past argument
@@ -80,7 +85,7 @@ echo "WORKDIR = ${WORKDIR}"
 
 if [[ -z "${BUILD_DIR}" ]] 
 then
-    BUILD_DIR="${REPO_ROOT}/build_tflite_riscv"
+    BUILD_DIR="${REPO_ROOT}/build_tflite_riscv_rvv07"
     if [[ ! -d ${BUILD_DIR} ]]
     then
         mkdir ${BUILD_DIR}
@@ -95,7 +100,7 @@ then
     then
         echo "Starting downloading xuantie-gnu-toolchain for ubuntu 20.04 version 2.8.1 ..."
         wget -O ${WORKDIR}/riscv_toolchain.tgz 'https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1705395627867/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1-20240115.tar.gz'
-        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz 
+        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz -C ${WORKDIR}
         mv ${WORKDIR}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1 ${WORKDIR}/riscv
     fi
     TOOLCHAIN_PATH=${WORKDIR}/riscv
@@ -133,17 +138,39 @@ fi
 if [[ ! -z "${REBUILD_TFLITE}" ]]
 then
     echo "Start building TFLite for RISCV..."
-    cmake -S ${WORKDIR}/tensorflow/tensorflow/lite/ -B ${BUILD_DIR}/tflite_riscv_build -D CMAKE_BUILD_TYPE=Release -D BUILD_SHARED_LIBS=ON \
-        -D TFLITE_ENABLE_GPU=OFF -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 \
-        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
-        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
-        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d" \
-        -D CMAKE_C_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d" \
-        -D TFLITE_ENABLE_XNNPACK=ON \
-        -D XNNPACK_ENABLE_RISCV_VECTOR=OFF \
+    cmake -S ${WORKDIR}/tensorflow/tensorflow/lite/ -B ${BUILD_DIR}/tflite_riscv_build \
+        -D CMAKE_BUILD_TYPE=Release -D BUILD_SHARED_LIBS=ON \
+        -D TFLITE_ENABLE_GPU=ON -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 \
+        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+        -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128" \
+        -D CMAKE_C_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128" \
+        -D TFLITE_ENABLE_XNNPACK=ON -DXNNPACK_ENABLE_RISCV_VECTOR=ON -DTFLITE_ENABLE_GPU=OFF \
+        -D XNNPACK_TARGET_PROCESSOR=riscv \
+        -D XNNPACK_ENABLE_ARM_FP16_SCALAR=OFF \
+        -D XNNPACK_ENABLE_ARM_BF16=OFF \
+        -D XNNPACK_ENABLE_ARM_FP16_VECTOR=OFF \
+        -D XNNPACK_ENABLE_ARM_DOTPROD=OFF \
+        -D XNNPACK_ENABLE_ARM_I8MM=OFF \
         -D XNNPACK_BUILD_TESTS=OFF \
-        -D XNNPACK_BUILD_BENCHMARKS=OFF
+        -D XNNPACK_BUILD_BENCHMARKS=OFF \
+        -D XNNPACK_DEBUG_LOGGING=ON \
+        -D XNNPACK_ENABLE_CPUINFO=OFF \
+        -D XNNPACK_DELEGATE_ENABLE_SUBGRAPH_RESHAPING=1
 
+    cmake --build ${BUILD_DIR}/tflite_riscv_build --config Release --parallel $(nproc)
+
+    mkdir ${BUILD_DIR}/tmp_tflite_riscv_build_libs
+    find ${BUILD_DIR}/tflite_riscv_build -type f -name "*.so" -exec cp {} ${BUILD_DIR}/tmp_tflite_riscv_build_libs \;
+    cp ${BUILD_DIR}/tmp_tflite_riscv_build_libs/* ${BUILD_DIR}/tflite_riscv_build
+    rm -rf ${BUILD_DIR}/tmp_tflite_riscv_build_libs/
+fi
+
+if [[ ! -z "${RECOMPILE_TFLITE}" ]]
+then
     cmake --build ${BUILD_DIR}/tflite_riscv_build --config Release --parallel $(nproc)
 
     mkdir ${BUILD_DIR}/tmp_tflite_riscv_build_libs
@@ -172,13 +199,17 @@ if [[ ! -z "${REBUILD_OPENCV}" ]]
 then
     echo "Start building OpenCV for RISCV..."
     cmake -S ${WORKDIR}/opencv -B ${BUILD_DIR}/opencv_riscv_build -D CMAKE_BUILD_TYPE=Release \
-        -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 -D BUILD_SHARED_LIBS=OFF -D CMAKE_SYSROOT=${RISCV_SYSROOT} \
-        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
-        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
-        -D BUILD_TESTS=OFF -D BUILD_EXAMPLES=OFF -D BUILD_PERF_TESTS=OFF \
         -D WITH_OPENCL=OFF \
-        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d" \
-        -D CMAKE_C_FLAGS_INIT="-march=rv64imafdc -mabi=lp64d"
+        -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 -D BUILD_SHARED_LIBS=OFF -D CMAKE_SYSROOT=${RISCV_SYSROOT} \
+        -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+        -D CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+        -D CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+        -D CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+        -D BUILD_TESTS=OFF -D BUILD_EXAMPLES=OFF -D BUILD_PERF_TESTS=OFF \
+        -D BUILD_ZLIB=ON \
+        -D CMAKE_CXX_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128" \
+        -D CMAKE_C_FLAGS_INIT="-march=rv64imafdcv0p7_zfh_xtheadc -mabi=lp64d -D__riscv_vector_071 -mrvv-vector-bits=128"
     cd ${BUILD_DIR}/opencv_riscv_build
     make -j$(nproc)
 fi

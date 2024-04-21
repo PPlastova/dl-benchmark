@@ -49,7 +49,7 @@ if (TENSORFLOW_SRC_DIR AND TFLITE_BUILD_DIR)
         set(TSL_DIR ${TENSORFLOW_SRC_DIR}/tensorflow)
         # starting from tflite 2.15 tsl moved into thirdparty
         if(NOT EXISTS ${TSL_DIR}/tsl/util/stats_calculator.cc)
-            set(TSL_DIR ${TENSORFLOW_SRC_DIR}/third_party/xla/third_party/tsl)
+            set(TSL_DIR ${TENSORFLOW_SRC_DIR}/third_party/xla)
         endif()
     endif()
 
@@ -69,7 +69,7 @@ if (TENSORFLOW_SRC_DIR AND TFLITE_BUILD_DIR)
     set(TFLITE_SOURCE_DIR ${TENSORFLOW_SRC_DIR}/tensorflow/lite)
 
     set(PROFILING_SOURCES
-        ${TSL_DIR}/tsl/util/stats_calculator.cc
+        ${TSL_DIR}/xla/tsl/util/stats_calculator.cc
         ${TFLITE_SOURCE_DIR}/profiling/memory_info.cc
         ${TFLITE_SOURCE_DIR}/profiling/memory_usage_monitor.cc
         ${TFLITE_SOURCE_DIR}/profiling/profile_buffer.h

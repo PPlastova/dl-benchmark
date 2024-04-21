@@ -1,17 +1,17 @@
 # TensorFlow Lite build for Linux RISC-V platform
 
-1. Build and install prerequisites for TensorFlow Lite launcher (CPP API):
+1. Build prerequisites for TensorFlow Lite launcher (CPP API):
  
    ```bash
    cd dl-benchmark/src/build_scripts/tflite/riscv64
-   sudo ./build_prerequisites_linux_riscv.sh
+   ./build_prerequisites_linux_riscv.sh
    ```
 
-1. Build and install TensorFlow Lite launcher (CPP API):
+1. Build TensorFlow Lite launcher (CPP API):
 
    ```bash
    cd dl-benchmark/src/build_scripts/tflite/riscv64
-   sudo ./build_cpp_tflite_launcher_linux_riscv.sh
+   ./build_cpp_tflite_launcher_linux_riscv.sh
    ```
 
 1. Move resulting `dl-benchmark/build/riscv64_send_archive.tgz` to RISC-V board and unpack
@@ -25,7 +25,6 @@
 
    ```bash
    export LD_LIBRARY_PATH=builded_launcher/tflite_riscv_build:builded_launcher/opencv_riscv_build/lib:$LD_LIBRARY_PATH
-   export LD_LIBRARY_PATH=builded_launcher/sysroot/lib/:$LD_LIBRARY_PATH
    ```
 
 1. Download model to test:
