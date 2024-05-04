@@ -233,7 +233,7 @@ class IOAdapter(metaclass=abc.ABCMeta):
         return result is None
 
     @abc.abstractmethod
-    def process_output(self, result, log):
+    def process_output(self, result, log, report_writer=None):
         pass
 
     @staticmethod
@@ -439,7 +439,7 @@ class ClassificationIO(IOAdapter):
     def __init__(self, args, io_model_wrapper, transformer):
         super().__init__(args, io_model_wrapper, transformer)
 
-    def process_output(self, result, log):
+    def process_output(self, result, log, report_writer=None):
         if self._is_result_invalid(result):
             log.warning('Model output is processed only for the number iteration = 1')
             return
@@ -450,13 +450,21 @@ class ClassificationIO(IOAdapter):
         result = result[result_layer_name]
         log.info('Top {0} results:'.format(self._number_top))
 
+        report_dict = dict()
+
         for batch, probs in enumerate(result):
             probs = np.squeeze(probs)
             top_ind = np.argsort(probs)[-self._number_top:][::-1]  # noqa: PLE1130
             log.info('Result for image {0}'.format(batch + 1))
+            image_res = []
             for id_ in top_ind:
                 det_label = self._labels_map[id_] if self._labels_map else '#{0}'.format(id_)
                 log.info('\t{:.7f} {}'.format(probs[id_], det_label))  # noqa: P101
+                image_res.append('{:.7f} {}'.format(probs[id_], det_label))
+            report_dict[f"image_{batch+1}"] = "\n".join(image_res)
+        
+        if report_writer:
+            report_writer.update_inference_results(**report_dict)
 
 
 class DetectionIO(IOAdapter):

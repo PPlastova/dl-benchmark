@@ -25,6 +25,11 @@ class ReportWriter:
     def update_cmd_options(self, **kwargs):
         self._update_report('cmd_options', **kwargs)
 
+    def update_inference_results(self, **kwargs):
+        self.report['inference_results'] = {}
+        for key, value in kwargs.items():
+            self.report['inference_results'][key] = value
+
     def _update_report(self, section, **kwargs):
         for key, value in kwargs.items():
             if key not in self.report[section]:

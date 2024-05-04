@@ -288,8 +288,6 @@ def main():
         inference_result = pp.calculate_performance_metrics_sync_mode(args.batch_size, inference_time)
 
         report_writer.update_execution_results(**inference_result)
-        log.info(f'Write report to {args.report_path}')
-        report_writer.write_report(args.report_path)
 
         output_names = model_wrapper.get_outputs_layer_names(interpreter, args.output_names)
 
@@ -300,11 +298,14 @@ def main():
                     result = prepare_output(result, output_names, args.task)
 
                     log.info('Inference results')
-                    io.process_output(result, log)
+                    io.process_output(result, log, report_writer)
                 except Exception as ex:
                     log.warning('Error when printing inference results. {0}'.format(str(ex)))
 
             log.info(f'Performance results:\n{json.dumps(inference_result, indent=4)}')
+
+        log.info(f'Write report to {args.report_path}')
+        report_writer.write_report(args.report_path)
 
     except Exception:
         log.error(traceback.format_exc())
