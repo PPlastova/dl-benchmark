@@ -126,7 +126,7 @@ then
     then
         echo "Starting downloading xuantie-gnu-toolchain for ubuntu 20.04 version 2.8.1 ..."
         wget -O ${WORKDIR}/riscv_toolchain.tgz 'https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1705395627867/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1-20240115.tar.gz'
-        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz 
+        tar -xvzf ${WORKDIR}/riscv_toolchain.tgz -C ${WORKDIR}
         mv ${WORKDIR}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1 ${WORKDIR}/riscv
     fi
     TOOLCHAIN_PATH=${WORKDIR}/riscv
