@@ -119,9 +119,11 @@ else
     RISCV_SYSROOT=${TOOLCHAIN_PATH}/sysroot
 fi
 
-if [ ! -d ${WORKDIR}/tensorflow ]
+TFLITE_BRANCH="pplastova_tflite_riscv_rvvgemm_rvvdwconv"
+if [ ! -d ${WORKDIR}/tensorflow_${TFLITE_BRANCH} ]
 then
-    git clone -b pplastova_tflite_riscv https://github.com/PPlastova/tensorflow.git ${WORKDIR}/tensorflow
+    git clone -b ${TFLITE_BRANCH} https://github.com/PPlastova/tensorflow.git ${WORKDIR}/tensorflow_${TFLITE_BRANCH}
+    REBUILD_TFLITE=YES
 fi
 
 if [ -d ${BUILD_DIR}/tflite_riscv_build ]
@@ -138,7 +140,7 @@ fi
 if [[ ! -z "${REBUILD_TFLITE}" ]]
 then
     echo "Start building TFLite for RISCV..."
-    cmake -S ${WORKDIR}/tensorflow/tensorflow/lite/ -B ${BUILD_DIR}/tflite_riscv_build \
+    cmake -S ${WORKDIR}/tensorflow_${TFLITE_BRANCH}/tensorflow/lite/ -B ${BUILD_DIR}/tflite_riscv_build \
         -D CMAKE_BUILD_TYPE=Release -D BUILD_SHARED_LIBS=ON \
         -D TFLITE_ENABLE_GPU=ON -D CMAKE_SYSTEM_NAME=Linux -D CMAKE_SYSTEM_PROCESSOR=riscv64 \
         -D CMAKE_C_COMPILER=${RISCV_C_COMPILER} -D CMAKE_CXX_COMPILER=${RISCV_CXX_COMPILER} \

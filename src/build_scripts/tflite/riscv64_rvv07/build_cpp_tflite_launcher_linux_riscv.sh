@@ -96,12 +96,14 @@ else
     echo "OPENCV_RISCV_BUILD_DIR = ${OPENCV_RISCV_BUILD}"
 fi
 
-if [ ! -d ${WORKDIR}/tensorflow ]
+TFLITE_BRANCH="pplastova_tflite_riscv_rvvgemm_rvvdwconv"
+
+if [ ! -d ${WORKDIR}/tensorflow_${TFLITE_BRANCH} ]
 then
     echo "Tensorflow sources not exist in ${WORKDIR}. Download it using build_prerequisites_linux_riscv.sh"
     exit 1
 else
-    TFLITE_SRC_DIR=${WORKDIR}/tensorflow
+    TFLITE_SRC_DIR=${WORKDIR}/tensorflow_${TFLITE_BRANCH}
     echo "TFLITE_SRC_DIR = ${TFLITE_SRC_DIR}"
 fi
 
