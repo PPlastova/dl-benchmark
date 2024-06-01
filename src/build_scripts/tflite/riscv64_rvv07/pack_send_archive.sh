@@ -38,7 +38,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 if [[ ! -z "${PRINT_HELP}" ]] 
 then
     echo "Supported arguments: 
-    -b / --build_dir - directory for builded packages. Default: dl-benchmark/build
+    -b / --build_dir - directory for builded packages. Default: dl-benchmark/build_tflite_riscv_rvv07
     --rebuild_cpp_launcher - Rebuild cpp tflite launcher
     "
     exit 1
